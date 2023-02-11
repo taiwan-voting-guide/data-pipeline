@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync"
 
 	"github.com/spf13/viper"
 )
@@ -33,11 +32,7 @@ type Legislator struct {
 	Term        string `json:"term"`
 }
 
-type CurrentLegislatorPayload struct {
-	JsonList []Legislator `json:"jsonList"`
-}
-
-type HistoryLegislatorPayload struct {
+type LegislatorPayload struct {
 	DataList []Legislator `json:"dataList"`
 }
 
@@ -49,8 +44,8 @@ func parseConfig() {
 	}
 }
 
-func getLegislatorInfo(url string) []byte {
-	log.Println(fmt.Sprintf("Fetching %s", url))
+func get(url string) []byte {
+	log.Printf("Fetching %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
@@ -64,71 +59,31 @@ func getLegislatorInfo(url string) []byte {
 	return body
 }
 
-func getCurrentLegislatorInfo() chan Legislator {
-	url := "https://data.ly.gov.tw/odw/openDatasetJson.action?id=9&selectTerm=all"
-	body := getLegislatorInfo(url)
-	var result CurrentLegislatorPayload
+func parseLegislator(body []byte) []Legislator {
+	var result LegislatorPayload
 	if err := json.Unmarshal(body, &result); err != nil {
 		fmt.Println("Can not unmarshal JSON")
 	}
-	ch := make(chan Legislator)
-	go func(c chan Legislator) {
-		for _, legislator := range result.JsonList {
-			log.Println(legislator)
-			c <- legislator
-		}
-		close(ch)
-	}(ch)
-	log.Println(fmt.Sprintf("Get %d records from %s", len(result.JsonList), url))
-	return ch
-}
-
-func getTermLegislatorInfo(term int) []Legislator {
-	url := fmt.Sprintf("https://data.ly.gov.tw/odw/ID16Action.action?term=%02d&fileType=json", term)
-	body := getLegislatorInfo(url)
-	var result HistoryLegislatorPayload
-	if err := json.Unmarshal(body, &result); err != nil {
-		fmt.Println("Can not unmarshal JSON")
-	}
-	log.Println(fmt.Sprintf("Get %d records from %s", len(result.DataList), url))
+	log.Printf("Get %d records", len(result.DataList))
 	return result.DataList
 }
 
-func getHistoryLegislatorInfo() chan Legislator {
-	log.Println("Get history legislator info")
-	ch := make(chan Legislator)
-	wg := sync.WaitGroup{}
-	for i := 1; i <= viper.GetInt("legislator.last_term"); i++ {
-		wg.Add(1)
-		go func(term int) {
-			defer wg.Done()
-			for _, legislator := range getTermLegislatorInfo(term) {
-				ch <- legislator
-			}
-		}(i)
-	}
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-	log.Println("End history legislator info")
-	return ch
+func getCurrentLegislatorInfo() []Legislator {
+	url := "https://data.ly.gov.tw/odw/ID9Action.action?fileType=json"
+	return parseLegislator(get(url))
 }
 
-func main() {
-	parseConfig()
-	f, err := os.OpenFile("access.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+func getHistoryLegislatorInfo() []Legislator {
+	url := "https://data.ly.gov.tw/odw/ID16Action.action?fileType=json"
+	return parseLegislator(get(url))
+}
+
+func toFile(filePath string, records []Legislator) {
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for elem := range getCurrentLegislatorInfo() {
-		data, _ := json.Marshal(elem)
-		if _, err := f.Write(data); err != nil {
-			log.Fatal(err)
-		}
-		f.WriteString("\n")
-	}
-	for elem := range getHistoryLegislatorInfo() {
+	for _, elem := range records {
 		data, _ := json.Marshal(elem)
 		if _, err := f.Write(data); err != nil {
 			log.Fatal(err)
@@ -138,4 +93,10 @@ func main() {
 	if err := f.Close(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func main() {
+	parseConfig()
+	records := append(getCurrentLegislatorInfo(), getHistoryLegislatorInfo()...)
+	toFile("data/legislators.jsonl", records)
 }

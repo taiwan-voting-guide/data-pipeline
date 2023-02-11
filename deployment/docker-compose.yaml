@@ -1,0 +1,17 @@
+version: '3.1'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: tvg
+      POSTGRES_USER: tvg
+      POSTGRES_PASSWORD: tvg
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../init/pg.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - 5432:5432
+volumes:
+  pgdata:
