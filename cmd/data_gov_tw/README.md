@@ -9,3 +9,5 @@
         - /data_gov_tw
             - /votedata
                 - /voteData
+
+4. 執行 `go run cmd/data_gov_tw/main.go`
