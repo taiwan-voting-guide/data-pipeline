@@ -64,14 +64,14 @@ var patyColumns = [...]string{
 }
 
 func readCSV(filepath string) ([][]string, error) {
-	// Open the CSV file.
+	// 打開 CSV 檔案
 	f, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	// Read the CSV data.
+	// 讀取 CSV 資料
 	r := csv.NewReader(f)
 	records, err := r.ReadAll()
 	if err != nil {
@@ -130,7 +130,7 @@ func renameFile(filePath string, newFileName string) {
 	}
 }
 
-func loadFirstFolders() {
+func runFirstFolders() {
 	for path, filename := range paths {
 		log.Printf("Load /%s ...", path)
 
@@ -158,7 +158,7 @@ func loadFirstFolders() {
 		}
 
 		// 讀取子資料夾
-		loadSecondFolders(firstFolderPath, file, secondFolders)
+		runSecondFolders(firstFolderPath, file, secondFolders)
 
 		// 關閉檔案
 		if err := file.Close(); err != nil {
@@ -167,7 +167,7 @@ func loadFirstFolders() {
 	}
 }
 
-func loadSecondFolders(firstFolderPath string, file *os.File, secondFolders []os.FileInfo) {
+func runSecondFolders(firstFolderPath string, file *os.File, secondFolders []os.FileInfo) {
 	for _, secondFolder := range secondFolders {
 		folderName := secondFolder.Name()
 
@@ -178,14 +178,12 @@ func loadSecondFolders(firstFolderPath string, file *os.File, secondFolders []os
 
 		log.Printf("/%s", folderName)
 
-		// 候選人檔案路徑
+		// 檔案路徑
 		candPath := fmt.Sprintf("%s/%s/elcand.csv", firstFolderPath, folderName)
-		// 行政區檔案路徑
 		basePath := fmt.Sprintf("%s/%s/elbase.csv", firstFolderPath, folderName)
-		// 政黨檔案路徑
 		patyPath := fmt.Sprintf("%s/%s/elpaty.csv", firstFolderPath, folderName)
 
-		// read csv
+		// 讀取 csv
 		candRecords, err := readCSV(candPath)
 		if err != nil {
 			fmt.Println(err)
@@ -206,6 +204,8 @@ func loadSecondFolders(firstFolderPath string, file *os.File, secondFolders []os
 		for _, record := range candRecords {
 			// 轉成 map 變數
 			recordMap := make(map[string]interface{})
+
+			// format 欄位
 			for i, column := range record {
 				recordName := candColumns[i]
 				trimColumn := strings.Trim(column, " ")
@@ -232,7 +232,7 @@ func loadSecondFolders(firstFolderPath string, file *os.File, secondFolders []os
 				}
 			}
 
-			// 取得行政區
+			// 取得行政區欄位
 			if strings.Contains(folderName, "山原") || strings.Contains(folderName, "山地") {
 				recordMap["base_name"] = "山地原住民選區"
 			} else if strings.Contains(folderName, "平原") || strings.Contains(folderName, "平地") {
@@ -252,7 +252,7 @@ func loadSecondFolders(firstFolderPath string, file *os.File, secondFolders []os
 				}
 			}
 
-			// 取得政黨
+			// 取得政黨欄位
 			findParty := make(map[string]string)
 			findParty["party_code"] = recordMap["party_code"].(string)
 			partyData, isMatch := findSimilarMap(patyDatas, findParty)
@@ -277,14 +277,16 @@ func loadSecondFolders(firstFolderPath string, file *os.File, secondFolders []os
 	}
 }
 
-func main() {
-	// 修正檔名
+func fixFilenames() {
 	renameFile("2016總統立委/山地立委/elbase_T3.csv", "2016總統立委/山地立委/elbase.csv")
 	renameFile("2016總統立委/平地立委/elbase_T2.csv", "2016總統立委/平地立委/elbase.csv")
 	renameFile("2016總統立委/區域立委/elbase_T1.csv", "2016總統立委/區域立委/elbase.csv")
 	renameFile("2016總統立委/山地立委/elcand_T3.csv", "2016總統立委/山地立委/elcand.csv")
 	renameFile("2016總統立委/平地立委/elcand_T2.csv", "2016總統立委/平地立委/elcand.csv")
 	renameFile("2016總統立委/區域立委/elcand_T1.csv", "2016總統立委/區域立委/elcand.csv")
+}
 
-	loadFirstFolders()
+func main() {
+	fixFilenames()
+	runFirstFolders()
 }
