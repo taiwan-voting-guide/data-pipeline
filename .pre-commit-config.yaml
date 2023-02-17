@@ -22,6 +22,8 @@ repos:
     rev: 6.0.0
     hooks:
       - id: flake8
+        args:
+          - --extend-ignore=E501
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v1.0.0'
     hooks:
