@@ -1,4 +1,4 @@
-module github.com/taiwan-voting-guide/data
+module github.com/taiwan-voting-guide/data/golang
 
 go 1.19
 
