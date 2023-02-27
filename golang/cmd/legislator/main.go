@@ -98,5 +98,5 @@ func toFile(filePath string, records []Legislator) {
 func main() {
 	parseConfig()
 	records := append(getCurrentLegislatorInfo(), getHistoryLegislatorInfo()...)
-	toFile("data/legislators.jsonl", records)
+	toFile("../data/legislators.jsonl", records)
 }
