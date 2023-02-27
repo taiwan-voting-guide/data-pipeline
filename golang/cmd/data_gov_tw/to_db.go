@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/taiwan-voting-guide/backend/candidate"
 	"github.com/taiwan-voting-guide/backend/model"
 	"github.com/taiwan-voting-guide/backend/politician"
 )
@@ -47,34 +48,28 @@ func importToDB(path string, term int) {
 
 		// Create Candidate by id
 		createCandidate(term, int(politicianId), data)
-
-		// TODO: return for debugging
-		return
 	}
 }
 
 func createCandidate(term int, politicianId int, data map[string]interface{}) int64 {
 	elected := data["is_victor"] == "*"
 	no, _ := strconv.Atoi(data["no"].(string))
+	partyId, _ := strconv.Atoi(data["party_code"].(string))
 	c := &model.CandidateLyRepr{
 		Type:         getCandidateType(data["base_name"].(string)),
 		Term:         term,
 		PoliticianId: int(politicianId),
 		Number:       no,
 		Elected:      elected,
-		// PartyId:      data["party_code"], // TODO
-		Area: data["base_name"].(string),
+		PartyId:      partyId,
+		Area:         data["base_name"].(string),
 	}
 
-	log.Printf("TODO: create candidate.")
-	log.Println(c)
-
-	// TODO: Create Candidate by Store
-	// id, err := politician.New().Create(context.Background(), p)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return 0
-	// }
+	err := candidate.New().Create(context.Background(), c.Model())
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
 
 	return 1
 }
@@ -87,12 +82,13 @@ func createPolitician(data map[string]interface{}) int64 {
 		birthdate = &formatBirthdate
 	}
 	sex := getPoliticianSex(data["sex"].(string))
+	// partyId, _ := strconv.Atoi(data["party_code"].(string))
 
 	p := &model.PoliticianRepr{
 		Name:      name,
 		Birthdate: birthdate,
 		Sex:       sex,
-		// PartyId:      data["party_code"], // TODO
+		// PartyId:   partyId, // TODO
 	}
 
 	id, err := politician.New().Create(context.Background(), p)
@@ -101,7 +97,7 @@ func createPolitician(data map[string]interface{}) int64 {
 		return 0
 	}
 
-	log.Printf("Create politician: %s(%d)", name, id)
+	log.Printf("Create politician: %s(%d)", name)
 
 	return id
 }
