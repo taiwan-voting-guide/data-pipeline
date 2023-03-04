@@ -9,9 +9,15 @@ services:
       POSTGRES_USER: tvg
       POSTGRES_PASSWORD: tvg
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ../.pgdata:/var/lib/postgresql/data
       - ../init/pg.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - 5432:5432
-volumes:
-  pgdata:
+
+networks:
+  localhost:
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "172.21.0.1"
+    ipam:
+      config:
+        - subnet: "172.21.0.0/16"

@@ -11,7 +11,7 @@ import (
 )
 
 // 資料路徑
-var sourcePath = "data/votedata"
+var sourcePath = "../data/votedata"
 
 // 立委資料夾列表 對應 存擋檔名
 var paths = map[string]string{
@@ -150,7 +150,7 @@ func runFirstFolders() {
 		}
 
 		// 創建一個檔案，寫入 JSON 格式的資料
-		fileName := fmt.Sprintf("data/%s.jsonl", filename)
+		fileName := fmt.Sprintf("../data/%s.jsonl", filename)
 		file, err := os.Create(fileName)
 		if err != nil {
 			panic(err)
