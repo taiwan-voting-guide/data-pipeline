@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -15,27 +18,9 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/extrame/xls"
 	"github.com/joho/godotenv"
-	"github.com/taiwan-voting-guide/backend/pg"
+
+	"github.com/taiwan-voting-guide/backend/model"
 )
-
-type Party struct {
-	Id                int       `json:"id"`
-	Name              string    `json:"name"`
-	Chairman          string    `json:"chairman"`
-	EstablishedDate   time.Time `json:"established_date"`
-	FilingDate        time.Time `json:"filing_date"`
-	MainOfficeAddress string    `json:"main_office_address"`
-	MailingAddress    string    `json:"mailing_address"`
-	PhoneNumber       string    `json:"phone_number"`
-	Status            int       `json:"status"`
-}
-
-type Record struct {
-	Table  string `json:"table"`
-	Record Party  `json:"record"`
-}
-
-type Records []Record
 
 func main() {
 	godotenv.Load()
@@ -54,14 +39,6 @@ func main() {
 	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
 	defer cancel()
 
-	var nodes []*cdp.Node
-	if err := chromedp.Run(ctx,
-		chromedp.Navigate("https://party.moi.gov.tw"),
-		chromedp.Nodes("search_party", &nodes, chromedp.ByID),
-	); err != nil {
-		log.Println(err)
-	}
-
 	done := make(chan string, 1)
 	chromedp.ListenTarget(ctx, func(ev interface{}) {
 		if ev, ok := ev.(*browser.EventDownloadProgress); ok {
@@ -75,7 +52,7 @@ func main() {
 
 	var ns []*cdp.Node
 	if err := chromedp.Run(ctx,
-		chromedp.MouseClickNode(nodes[0]),
+		chromedp.Navigate("https://party.moi.gov.tw/PartyMain.aspx?n=16100&sms=13073"),
 		chromedp.WaitVisible("ContentPlaceHolder1_BTN_Export_Excel", chromedp.ByID),
 		chromedp.Nodes("ContentPlaceHolder1_BTN_Export_Excel", &ns, chromedp.ByID),
 		browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllowAndName).WithDownloadPath(tmpDir).WithEventsEnabled(true),
@@ -94,76 +71,66 @@ func main() {
 		log.Println(err)
 	}
 
-	recordsList := []Records{}
-
+	stagingCreates := []model.StagingCreate{}
 	if xlFile, err := xls.Open(tmpDir+"/"+filename, "utf-8"); err == nil {
 		if sheet := xlFile.GetSheet(0); sheet != nil {
-			for row := 0; row <= int(sheet.MaxRow); row++ {
-				recordsList = append(recordsList, Records{Record{
-					Table:  "parties",
-					Record: rowToParty(sheet.Row(row)),
-				}})
+			for row := 1; row <= int(sheet.MaxRow); row++ {
+				fmt.Println(row)
+				stagingCreates = append(stagingCreates, rowToStagingCreate(sheet.Row(row)))
 			}
 		}
 	}
 
-	conn, err := pg.Connect(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close(ctx)
+	stagingCreates = stagingCreates[1:]
 
-	for _, r := range recordsList {
-		recordJson, err := json.Marshal(r)
+	// http request to staging api
+	for _, stagingCreate := range stagingCreates {
+		stagingCreateJson, err := json.Marshal(stagingCreate)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal()
 		}
 
-		_, err = conn.Exec(context.Background(), "INSERT INTO staging_data (records) VALUES ($1)", recordJson)
-		if err != nil {
-			log.Fatal(err)
-		}
+		// get env config
+		backendEndpoint := os.Getenv("BACKEND_ENDPOINT")
+		endpoint := backendEndpoint + "/workspace/staging"
+
+		log.Println(string(stagingCreateJson))
+
+		http.Post(endpoint, "application/json", bytes.NewReader(stagingCreateJson))
+
 	}
 }
 
-func rowToParty(row *xls.Row) Party {
+func rowToStagingCreate(row *xls.Row) model.StagingCreate {
+	fmt.Println("row to stg")
 	id, _ := strconv.Atoi(row.Col(0))
+	fmt.Println("id")
 	chairman := ""
 	if !strings.Contains(row.Col(2), "負責人") {
 		chairman = row.Col(2)
 	}
 
-	return Party{
-		Id:                id,
-		Name:              row.Col(1),
-		Chairman:          chairman,
-		EstablishedDate:   ROCDateToDate(row.Col(3)),
-		FilingDate:        ROCDateToDate(row.Col(4)),
-		MainOfficeAddress: row.Col(5),
-		MailingAddress:    row.Col(6),
-		PhoneNumber:       row.Col(7),
-		Status:            statusStrToNum(row.Col(8)),
-	}
-}
-
-func statusStrToNum(status string) int {
-	switch status {
-	case "一般":
-		return 1
-	case "撤銷備案":
-		return 2
-	case "自行解散":
-		return 3
-	case "失聯":
-		return 4
-	case "廢止備案":
-		return 5
+	return model.StagingCreate{
+		Table: "parties",
+		SearchBy: model.StagingCreateSearchBy{
+			"id": id,
+		},
+		Fields: model.StagingCreateFields{
+			"id":                  id,
+			"name":                row.Col(1),
+			"chairman":            chairman,
+			"established_date":    ROCDateToDate(row.Col(3)),
+			"filing_date":         ROCDateToDate(row.Col(4)),
+			"main_office_address": row.Col(5),
+			"mailing_address":     row.Col(6),
+			"phone_number":        row.Col(7),
+			"status":              row.Col(8),
+		},
 	}
 
-	return 0
 }
 
-func ROCDateToDate(date string) time.Time {
+func ROCDateToDate(date string) string {
 	year := 0
 	month := 0
 	day := 0
@@ -173,10 +140,10 @@ func ROCDateToDate(date string) time.Time {
 	_, err := fmt.Sscanf(date, "民國%d年%d月%d日", &year, &month, &day)
 	if err != nil {
 		log.Println(err)
-		return time.Time{}
+		return ""
 	}
 
 	year += 1911
 
-	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
+	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC).Format("2006-01-02T15:04:05Z")
 }
