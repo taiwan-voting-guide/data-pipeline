@@ -16,7 +16,8 @@ import (
 	"github.com/taiwan-voting-guide/backend/politician"
 )
 
-func main() {
+// TODO Refactor
+func submit() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("loading .env file failed")
