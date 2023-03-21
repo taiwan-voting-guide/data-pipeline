@@ -234,16 +234,6 @@ func runSecondFolders(firstFolderPath string, file *os.File, secondFolders []os.
 	}
 }
 
-func fixFilenames() {
-	renameFile("2016總統立委/山地立委/elbase_T3.csv", "2016總統立委/山地立委/elbase.csv")
-	renameFile("2016總統立委/平地立委/elbase_T2.csv", "2016總統立委/平地立委/elbase.csv")
-	renameFile("2016總統立委/區域立委/elbase_T1.csv", "2016總統立委/區域立委/elbase.csv")
-	renameFile("2016總統立委/山地立委/elcand_T3.csv", "2016總統立委/山地立委/elcand.csv")
-	renameFile("2016總統立委/平地立委/elcand_T2.csv", "2016總統立委/平地立委/elcand.csv")
-	renameFile("2016總統立委/區域立委/elcand_T1.csv", "2016總統立委/區域立委/elcand.csv")
-}
-
 func main() {
-	fixFilenames()
 	runFirstFolders()
 }

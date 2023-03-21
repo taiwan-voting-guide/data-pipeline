@@ -71,7 +71,7 @@ func main() {
 		log.Println(err)
 	}
 
-	stagingCreates := []model.StagingCreate{}
+	stagingCreates := []model.Staging{}
 	if xlFile, err := xls.Open(tmpDir+"/"+filename, "utf-8"); err == nil {
 		if sheet := xlFile.GetSheet(0); sheet != nil {
 			for row := 1; row <= int(sheet.MaxRow); row++ {
@@ -97,11 +97,10 @@ func main() {
 		log.Println(string(stagingCreateJson))
 
 		http.Post(endpoint, "application/json", bytes.NewReader(stagingCreateJson))
-
 	}
 }
 
-func rowToStagingCreate(row *xls.Row) model.StagingCreate {
+func rowToStagingCreate(row *xls.Row) model.Staging {
 	fmt.Println("row to stg")
 	id, _ := strconv.Atoi(row.Col(0))
 	fmt.Println("id")
@@ -110,12 +109,12 @@ func rowToStagingCreate(row *xls.Row) model.StagingCreate {
 		chairman = row.Col(2)
 	}
 
-	return model.StagingCreate{
+	return model.Staging{
 		Table: "parties",
-		SearchBy: model.StagingCreateSearchBy{
+		SearchBy: model.StagingFields{
 			"id": id,
 		},
-		Fields: model.StagingCreateFields{
+		Fields: model.StagingFields{
 			"id":                  id,
 			"name":                row.Col(1),
 			"chairman":            chairman,
