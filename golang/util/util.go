@@ -38,3 +38,8 @@ func ReadCSVToMap(filepath string, columnsMapper []string) ([]map[string]string,
 
 	return result, nil
 }
+
+func CreateStagingEndpoint() string {
+	backendEndpoint := os.Getenv("BACKEND_URL")
+	return backendEndpoint + "/workspace/staging/create"
+}

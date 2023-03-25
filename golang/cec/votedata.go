@@ -67,19 +67,13 @@ func (fn LyCandFileName) Load() ([]Cand, []Base, error) {
 
 // 立委檔案列表
 var LyCandFileNames = [...]LyCandFileName{
-	// 第10屆立委
-	{
-		path.Join(rootPath, "2020總統立委/平地立委/elcand.csv"),
-		path.Join(rootPath, "2020總統立委/平地立委/elbase.csv"),
-	},
-	{
-		path.Join(rootPath, "2020總統立委/山地立委/elcand.csv"),
-		path.Join(rootPath, "2020總統立委/山地立委/elbase.csv"),
-	},
-	{
-		path.Join(rootPath, "2020總統立委/區域立委/elcand.csv"),
-		path.Join(rootPath, "2020總統立委/區域立委/elbase.csv"),
-	},
+	// TODO
+	// 3屆立委
+	// 4屆立委
+	// 5屆立委
+	// 2004第6屆立法委員
+	// 2008立委
+	// 20120114-總統及立委
 	// 第9屆立委
 	{
 		path.Join(rootPath, "2016總統立委/山地立委/elcand_T3.csv"),
@@ -93,13 +87,19 @@ var LyCandFileNames = [...]LyCandFileName{
 		path.Join(rootPath, "2016總統立委/區域立委/elcand_T1.csv"),
 		path.Join(rootPath, "2016總統立委/區域立委/elbase_T1.csv"),
 	},
-	// TODO
-	// 20120114-總統及立委
-	// 2008立委
-	// 2004第6屆立法委員
-	// 5屆立委
-	// 4屆立委
-	// 3屆立委
+	// 第10屆立委
+	{
+		path.Join(rootPath, "2020總統立委/平地立委/elcand.csv"),
+		path.Join(rootPath, "2020總統立委/平地立委/elbase.csv"),
+	},
+	{
+		path.Join(rootPath, "2020總統立委/山地立委/elcand.csv"),
+		path.Join(rootPath, "2020總統立委/山地立委/elbase.csv"),
+	},
+	{
+		path.Join(rootPath, "2020總統立委/區域立委/elcand.csv"),
+		path.Join(rootPath, "2020總統立委/區域立委/elbase.csv"),
+	},
 }
 
 // 候選人欄位對應

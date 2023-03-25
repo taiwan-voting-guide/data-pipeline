@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/taiwan-voting-guide/backend/model"
+	"github.com/taiwan-voting-guide/data/util"
 )
 
 func main() {
@@ -75,13 +75,10 @@ func main() {
 	if xlFile, err := xls.Open(tmpDir+"/"+filename, "utf-8"); err == nil {
 		if sheet := xlFile.GetSheet(0); sheet != nil {
 			for row := 1; row <= int(sheet.MaxRow); row++ {
-				fmt.Println(row)
 				stagingCreates = append(stagingCreates, rowToStagingCreate(sheet.Row(row)))
 			}
 		}
 	}
-
-	stagingCreates = stagingCreates[1:]
 
 	// http request to staging api
 	for _, stagingCreate := range stagingCreates {
@@ -90,20 +87,23 @@ func main() {
 			log.Fatal()
 		}
 
-		// get env config
-		backendEndpoint := os.Getenv("BACKEND_ENDPOINT")
-		endpoint := backendEndpoint + "/workspace/staging"
+		resp, err := http.Post(util.CreateStagingEndpoint(), "application/json", bytes.NewReader(stagingCreateJson))
+		if err != nil {
+			log.Println(err)
+		}
 
-		log.Println(string(stagingCreateJson))
+		if resp.StatusCode != 201 {
+			log.Printf("staging create failed: %s", stagingCreateJson)
+		}
 
-		http.Post(endpoint, "application/json", bytes.NewReader(stagingCreateJson))
 	}
+
+	log.Println("done!")
+
 }
 
 func rowToStagingCreate(row *xls.Row) model.Staging {
-	fmt.Println("row to stg")
 	id, _ := strconv.Atoi(row.Col(0))
-	fmt.Println("id")
 	chairman := ""
 	if !strings.Contains(row.Col(2), "負責人") {
 		chairman = row.Col(2)
@@ -144,5 +144,5 @@ func ROCDateToDate(date string) string {
 
 	year += 1911
 
-	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC).Format("2006-01-02T15:04:05Z")
+	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
 }
