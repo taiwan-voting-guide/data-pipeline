@@ -23,11 +23,11 @@ jobs:
         credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
     # Setup gcloud CLI
-    - id: Set up Cloud SDK
+    - id: 'gcloud-sdk-set'
       uses: "google-github-actions/setup-gcloud@v0"
 
     # SCP files
-    - id: gcloud scp files 
+    - id: 'gcloud-scp-files' 
       run: |-
         gcloud compute scp --recurse ~/prefect-infra/deploy_flows/ prefect-server:~/.
 
