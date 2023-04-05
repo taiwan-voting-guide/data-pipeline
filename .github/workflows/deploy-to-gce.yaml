@@ -21,6 +21,11 @@ jobs:
       uses: 'google-github-actions/auth@v0'
       with:
         credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+    
+    # list files
+    - id: 'list-files' 
+      run: |-
+        ls -R 
 
     # Setup gcloud CLI
     - id: 'gcloud-sdk-set'
