@@ -36,17 +36,25 @@ jobs:
       run: |-
         gcloud compute scp --recurse ./prefect_infra/deploy_flows/ prefect-server:~/test --zone=us-west1-c
 
-    - id: 'compute-ssh'
+    - id: 'compute-docker-cp-ssh'
       uses: 'google-github-actions/ssh-compute@v0.1.1'
       with:
         instance_name: 'prefect-server'
         zone: 'us-west1-c'
         ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-        command: 'ls -R'
+        command: 'docker cp ./deploy_flows 8e16c'
 
-    # Example of using the output
-    - id: 'test'
+    - id: 'docker-run-flow'
+      uses: 'google-github-actions/ssh-compute@v0.1.1'
+      with:
+        instance_name: 'prefect-server'
+        zone: 'us-west1-c'
+        ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
+        command: 'docker exec -it 8 /bin/bash -c "./deploy_flows/run_all.sh"'
+
+    # using the output
+    - id: 'result'
       run: |-
-        echo '${{ steps.compute-ssh.outputs.stdout }}'
-        echo '${{ steps.compute-ssh.outputs.stderr }}'
+        echo '${{ steps.docker-run-flow.outputs.stdout }}'
+        echo '${{ steps.docker-run-flow.outputs.stderr }}'
 
