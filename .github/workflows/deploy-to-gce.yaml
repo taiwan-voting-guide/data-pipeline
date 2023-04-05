@@ -28,7 +28,7 @@ jobs:
         instance_name: 'prefect-server'
         zone: 'us-west1-c'
         ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-        command: 'echo Hello world'
+        command: 'docker ps'
 
     # Example of using the output
     - id: 'test'
