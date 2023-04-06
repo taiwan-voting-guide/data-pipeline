@@ -50,7 +50,7 @@ jobs:
         instance_name: 'prefect-server'
         zone: 'us-west1-c'
         ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
-        command: 'docker exec -it 2bfc990a /bin/bash -c "./deploy_flows/run_all.sh"'
+        command: 'docker exec 2bfc990a /bin/bash -c "./deploy_flows/run_all.sh"'
 
     # using the output
     - id: 'result'
