@@ -1,0 +1,60 @@
+name: Deply Flows to Google Compute Engine
+
+on:
+  push:
+    branches:
+      - prefect-infra
+
+jobs:
+  setup-build-publish-deploy:
+    name: Setup, Build, Publish and Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - uses: 'actions/checkout@v2'
+
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v0'
+      with:
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+    
+    # list files
+    - id: 'list-files' 
+      run: |-
+        ls -R 
+
+    # Setup gcloud CLI
+    - id: 'gcloud-sdk-set'
+      uses: "google-github-actions/setup-gcloud@v0"
+
+    # SCP files
+    - id: 'gcloud-scp-files' 
+      run: |-
+        gcloud compute scp --recurse ./prefect_infra/deploy_flows/ prefect-server:~/. --zone=us-west1-c
+
+    - id: 'compute-docker-cp-ssh'
+      uses: 'google-github-actions/ssh-compute@v0.1.1'
+      with:
+        instance_name: 'prefect-server'
+        zone: 'us-west1-c'
+        ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
+        command: 'docker cp ./deploy_flows ${{ secrets.CONTAINER_ID }}:/home'
+
+    - id: 'docker-run-flow'
+      uses: 'google-github-actions/ssh-compute@v0.1.1'
+      with:
+        instance_name: 'prefect-server'
+        zone: 'us-west1-c'
+        ssh_private_key: '${{ secrets.GCP_SSH_PRIVATE_KEY }}'
+        command: 'docker exec ${{ secrets.CONTAINER_ID }} /bin/bash -c "./deploy_flows/run_all.sh"'
+
+    # using the output
+    - id: 'result'
+      run: |-
+        echo '${{ steps.docker-run-flow.outputs.stdout }}'
+        echo '${{ steps.docker-run-flow.outputs.stderr }}'
+
